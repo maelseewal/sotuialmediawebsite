@@ -6,20 +6,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SignUp</title>
   <link rel="stylesheet" href="css/login.css">
-  <style>
-  </style>
 </head>
 
 <body>
-  <form action="/signup" method="post" style="height: 90vh;">
+  <form id="signupForm" action="#" method="post">
     <h3>SignUp</h3>
 
+    <input type="text" id="username" placeholder="Username" name="username" required maxlength="16">
+
     <input type="email" id="mail" placeholder="Mail" name="mail" required>
-    <input type="text" id="username" placeholder="Benutzernamen" maxlength="16" name="username" required>
 
     <div class="password-container">
       <input type="password" id="password" placeholder="Password" name="password" required>
-      <div class="password-toggle" id="togglePassword" tabindex="0" role="button" aria-label="Passwort anzeigen">
+      <div class="password-toggle" id="togglePassword">
         <svg class="eye-open" width="1.5em" height="1.5em" viewBox="0 0 28 28" fill="none"
           xmlns="http://www.w3.org/2000/svg" style="fill: #aaa;">
           <path clip-rule="evenodd"
@@ -40,8 +39,7 @@
       </div>
     </div>
 
-    <button type="submit">SignUp</button>
-
+    <button type="submit">Send Verification Code</button>
     <div class="line"></div>
 
     <!--Google signinbutton-->
@@ -70,44 +68,94 @@
         <span style="display: none;">Sign in with Google</span>
       </div>
     </div>
-    <a href="/login">Already have a Account?</a>
+    <a href="/login">Already have an Account?</a>
+  </form>
 
+  <form id="verificationForm" style="display:none;">
+    <h3>Verify Email</h3>
+    <p>A verification code has been sent to your email. Please check your inbox.</p>
+    <input type="text" id="verificationCode" placeholder="Enter 6-digit code" required maxlength="6">
+    <button type="submit">Verify</button>
   </form>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const toggleButton = document.getElementById('togglePassword');
-      const passwordInput = document.getElementById('password');
-      const eyeOpen = document.querySelector('.eye-open');
-      const eyeClosed = document.querySelector('.eye-closed');
+    const signupForm = document.getElementById('signupForm');
+    const verificationForm = document.getElementById('verificationForm');
+    const toggleButton = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    const eyeOpen = document.querySelector('.eye-open');
+    const eyeClosed = document.querySelector('.eye-closed');
 
-      // Funktion zum Umschalten der Passwort-Sichtbarkeit
-      function togglePasswordVisibility() {
-        const isPasswordVisible = passwordInput.type === 'text';
-
-        // Toggle Passwort-Typ
-        passwordInput.type = isPasswordVisible ? 'password' : 'text';
-
-        // Toggle Augen-Icon
-        eyeOpen.style.display = isPasswordVisible ? 'block' : 'none';
-        eyeClosed.style.display = isPasswordVisible ? 'none' : 'block';
-
-        // Aria-Label aktualisieren für Barrierefreiheit
-        toggleButton.setAttribute('aria-label',
-          isPasswordVisible ? 'Passwort anzeigen' : 'Passwort verbergen');
+    // Password visibility toggle
+    toggleButton.addEventListener('click', function () {
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeOpen.style.display = 'none';
+        eyeClosed.style.display = 'block';
+      } else {
+        passwordInput.type = 'password';
+        eyeOpen.style.display = 'block';
+        eyeClosed.style.display = 'none';
       }
+    });
 
-      // Event-Listener für Klick
-      toggleButton.addEventListener('click', togglePasswordVisibility);
+    // Signup request
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-      // Event-Listener für Tastatur (Enter/Space)
-      toggleButton.addEventListener('keydown', function (e) {
-        // 13 = Enter, 32 = Space
-        if (e.keyCode === 13 || e.keyCode === 32) {
-          e.preventDefault();
-          togglePasswordVisibility();
+      const username = document.getElementById('username').value;
+      const mail = document.getElementById('mail').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const response = await fetch('/signup-request', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, mail, password })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          // Hide signup form, show verification form
+          signupForm.style.display = 'none';
+          verificationForm.style.display = 'flex';
+        } else {
+          alert(result.error || 'An error occurred');
         }
-      });
+      } catch (error) {
+        alert('Network error. Please try again.');
+      }
+    });
+
+    // Verification submission
+    verificationForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const code = document.getElementById('verificationCode').value;
+
+      try {
+        const response = await fetch('/verify-signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          // Redirect to login or show success message
+          window.location.href = '/login';
+        } else {
+          alert(result.error || 'Verification failed');
+        }
+      } catch (error) {
+        alert('Network error. Please try again.');
+      }
     });
   </script>
 </body>

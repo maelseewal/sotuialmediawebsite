@@ -44,8 +44,9 @@
         </button>
         <h2>Edit Profil</h2>
         <form action="/update-profile" method="post" enctype="multipart/form-data">
-          <label for="profilimg" class="custom-file-upload">Profilbild auswählen</label>
-          <input id="profilimg" type="file" name="profileimg" accept="image/*" style="display: none;" />
+          <label style="cursor: pointer;" for="profilimg" class="custom-file-upload">Profilbild auswählen</label>
+          <input id="profilimg" type="file" name="profileimg" accept="image/*"
+            style="cursor: pointer; display: none;" />
           <input id="name" type="text" name="name" placeholder="Name" value="data.name">
           <textarea name="bio" id="bio" placeholder="Bio"></textarea>
           <button type="submit">Speichern</button>
