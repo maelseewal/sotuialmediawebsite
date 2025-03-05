@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Profiles</title>
+  <link rel="stylesheet" href="css/users.css" />
+</head>
+
+<body>
+  <a href="/profile"><img class="profileimg" src="img/profile.png" alt="profilebild"></a>
+
+  <h1>User Profiles</h1>
+
+  <!-- Suchfeld hinzufügen -->
+  <input type="text" id="searchInput" placeholder="Search for users..." oninput="filterUsers()" />
+  <ul id="userlist">
+    <!-- User profiles will be dynamically inserted here -->
+  </ul>
+
+  <script>
+    let allUsers = []; // Array für alle Benutzer
+
+    // Debugging function to check what data we're receiving
+    function debugData(data) {
+      console.log("Received data:", data);
+      if (Array.isArray(data)) {
+        console.log("Data is an array with", data.length, "items");
+        if (data.length > 0) {
+          console.log("First item example:", data[0]);
+        }
+      } else {
+        console.log("Data is a single object:", data);
+      }
+    }
+
+    fetch("/allprofile")
+      .then((response) => {
+        console.log("Response status:", response.status);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        // Debug the received data
+        debugData(data);
+
+        allUsers = data; // Alle Benutzer speichern
+
+        const userListElement = document.getElementById("userlist");
+        userListElement.innerHTML = ""; // Clear any existing content
+
+        // Check if data is an array
+        if (Array.isArray(data)) {
+          // If data is an array, iterate through each user
+          data.forEach((user) => {
+            displayUser(user, userListElement);
+          });
+        } else {
+          // If data is a single object, display just that user
+          displayUser(data, userListElement);
+        }
+      })
+      .catch((error) => {
+        console.error("Fehler beim Laden der Daten:", error);
+        document.getElementById("userlist").innerHTML = `
+          <li class="user-card">
+            <p>Fehler beim Laden der Benutzerprofile: ${error.message}</p>
+            <p>Bitte stellen Sie sicher, dass Sie eingeloggt sind und versuchen Sie es erneut.</p>
+          </li>
+        `;
+      });
+
+    function displayUser(user, listElement) {
+      const listItem = document.createElement("li");
+      listItem.className = "user-card";
+
+      // Check if profileImage exists and properly access it with the correct property name
+      const profileImagePath = user.profileeImage || null;
+
+      // Use default image path if profileImage is not available
+      const defaultImagePath = "/img/profile.png";
+
+      // If profileImagePath starts with /uploads/, we don't need to add another slash
+      let imagePath;
+      if (profileImagePath && profileImagePath.startsWith("/")) {
+        imagePath = profileImagePath;
+      } else if (profileImagePath) {
+        imagePath = "/" + profileImagePath;
+      } else {
+        imagePath = defaultImagePath;
+      }
+
+      console.log("User:", user.username || "Unknown user");
+      console.log("Image path being used:", imagePath);
+
+      listItem.innerHTML = `
+          <div class = "imgandname">
+            <img class="profile-image" src="${imagePath}" alt="${user.name || " User"}'s profile"
+              onerror="this.src='${defaultImagePath}'; console.log('Image failed to load, using default:', this.src);">
+            <div class="user-info">
+              <h3>${user.username || "Username not available"}</h3>
+            </div>
+          </div>
+          <button>Follow</button>
+      `;
+
+      listElement.appendChild(listItem);
+    }
+
+    // Filterfunktion, die die Benutzer basierend auf der Suche filtert
+    function filterUsers() {
+      const searchTerm = document
+        .getElementById("searchInput")
+        .value.toLowerCase();
+
+      // Benutzerliste filtern
+      const filteredUsers = allUsers.filter((user) => {
+        return user.username.toLowerCase().includes(searchTerm);
+      });
+
+      // Liste aktualisieren
+      const userListElement = document.getElementById("userlist");
+      userListElement.innerHTML = ""; // Liste leeren
+
+      filteredUsers.forEach((user) => {
+        displayUser(user, userListElement);
+      });
+    }
+    fetch('/profiledata')
+      .then(response => response.json())
+      .then(data => {
+        if (data.profileeImage) {
+          document.querySelector('img').src = '/../' + data.profileeImage;
+        }
+      })
+      .catch(error => console.error('Fehler:', error));
+  </script>
+</body>
+
+</html>

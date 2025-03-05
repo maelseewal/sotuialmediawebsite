@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil</title>
+  <link rel="stylesheet" href="css/profile.css">
+</head>
+
+<body>
+  <section id="main">
+    <div class="profileinfo">
+      <img id="img" src="img/profile.png" alt="Profilbild">
+      <div class="info">
+        <div class="username">
+          <h1>username</h1>
+          <button class="editBtn">Edit profile</button>
+        </div>
+        <div class="follower">
+          <p>25 Photos</p>
+          <p>128 follower</p>
+          <p>254 followed</p>
+        </div>
+        <div class="personal">
+          <p id="name">Name</p>
+          <p id="bio">ahfljdfhdsa ljfafdljsah foiusafdhaoi fhaslkfdha jfdlkhdsa flkj</p>
+        </div>
+      </div>
+    </div>
+    <div class="line"></div>
+    <a style="margin-bottom: 10px;" href="/logout">Logout</a>
+    <a href="/">home</a>
+  </section>
+
+  <section id="editPopup" class="editPopup" style="display: none;">
+    <div class="blur">
+      <div class="edit">
+        <button id="closePopup"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30px" height="30px"
+            fill="white">
+            <path
+              d="M 7 4 C 6.744125 4 6.4879687 4.0974687 6.2929688 4.2929688 L 4.2929688 6.2929688 C 3.9019687 6.6839688 3.9019687 7.3170313 4.2929688 7.7070312 L 11.585938 15 L 4.2929688 22.292969 C 3.9019687 22.683969 3.9019687 23.317031 4.2929688 23.707031 L 6.2929688 25.707031 C 6.6839688 26.098031 7.3170313 26.098031 7.7070312 25.707031 L 15 18.414062 L 22.292969 25.707031 C 22.682969 26.098031 23.317031 26.098031 23.707031 25.707031 L 25.707031 23.707031 C 26.098031 23.316031 26.098031 22.682969 25.707031 22.292969 L 18.414062 15 L 25.707031 7.7070312 C 26.098031 7.3170312 26.098031 6.6829688 25.707031 6.2929688 L 23.707031 4.2929688 C 23.316031 3.9019687 22.682969 3.9019687 22.292969 4.2929688 L 15 11.585938 L 7.7070312 4.2929688 C 7.5115312 4.0974687 7.255875 4 7 4 z" />
+          </svg>
+        </button>
+        <h2>Edit Profil</h2>
+        <form action="/update-profile" method="post" enctype="multipart/form-data">
+          <label for="profilimg" class="custom-file-upload">Profilbild auswählen</label>
+          <input id="profilimg" type="file" name="profileimg" accept="image/*" style="display: none;" />
+          <input id="name" type="text" name="name" placeholder="Name" value="data.name">
+          <textarea name="bio" id="bio" placeholder="Bio"></textarea>
+          <button type="submit">Speichern</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section id="showimg" class="showimg">
+    <div class="blur2">
+      <div class="bigimg">
+        <img src="img/profile.png" alt="Profilbild">
+        <button id="closePopupimg">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30px" height="30px" fill="white">
+            <path
+              d="M 7 4 C 6.744125 4 6.4879687 4.0974687 6.2929688 4.2929688 L 4.2929688 6.2929688 C 3.9019687 6.6839688 3.9019687 7.3170313 4.2929688 7.7070312 L 11.585938 15 L 4.2929688 22.292969 C 3.9019687 22.683969 3.9019687 23.317031 4.2929688 23.707031 L 6.2929688 25.707031 C 6.6839688 26.098031 7.3170313 26.098031 7.7070312 25.707031 L 15 18.414062 L 22.292969 25.707031 C 22.682969 26.098031 23.317031 26.098031 23.707031 25.707031 L 25.707031 23.707031 C 26.098031 23.316031 26.098031 22.682969 25.707031 22.292969 L 18.414062 15 L 25.707031 7.7070312 C 26.098031 7.3170312 26.098031 6.6829688 25.707031 6.2929688 L 23.707031 4.2929688 C 23.316031 3.9019687 22.682969 3.9019687 22.292969 4.2929688 L 15 11.585938 L 7.7070312 4.2929688 C 7.5115312 4.0974687 7.255875 4 7 4 z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    fetch('/profiledata')
+      .then(response => response.json())
+      .then(data => {
+        // Den Benutzernamen anzeigen
+        document.querySelector('h1').textContent = data.username;
+
+        if (data.profileeImage) {
+          document.querySelector('img').src = '/../' + data.profileeImage; // kleines Bild
+          document.querySelector('.bigimg img').src = '/../' + data.profileeImage; // großes Bild im Pop-up
+        }
+
+
+        // Den bio-Wert im <p> Tag anzeigen
+        document.getElementById('bio').textContent = data.bio;
+        document.getElementById('name').textContent = data.name;
+        document.querySelector('input[name="name"]').value = data.name;
+        document.getElementById('textbio').textContent = data.bio;
+      })
+      .catch(error => console.error('Fehler:', error));
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const editBtn = document.querySelector(".editBtn");
+      const editPopup = document.getElementById("editPopup");
+      const closePopup = document.getElementById("closePopup");
+      const blur = document.querySelector(".blur");
+      const blur2 = document.querySelector(".blur2");
+      const bigimg = document.querySelector(".bigimg");
+
+      const edit = document.querySelector(".edit");
+      const closePopupimg = document.getElementById("closePopupimg");
+      const showimg = document.getElementById("showimg");
+      const img = document.getElementById("img");
+
+      img.addEventListener("click", () => {
+        showimg.style.display = "flex";
+      });
+
+      closePopupimg.addEventListener("click", () => {
+        showimg.style.display = "none";
+      });
+
+      blur2.addEventListener("click", (event) => {
+        if (!bigimg.contains(event.target)) {
+          showimg.style.display = "none";
+        }
+      });
+
+      editBtn.addEventListener("click", () => {
+        editPopup.style.display = "flex";
+      });
+
+      closePopup.addEventListener("click", () => {
+        editPopup.style.display = "none";
+      });
+
+      blur.addEventListener("click", (event) => {
+        if (!edit.contains(event.target)) {
+          editPopup.style.display = "none";
+        }
+      });
+
+      window.addEventListener("click", (event) => {
+        if (event.target === editPopup) {
+          editPopup.style.display = "none";
+        }
+      });
+    });
+  </script>
+
+</body>
+
+</html>
