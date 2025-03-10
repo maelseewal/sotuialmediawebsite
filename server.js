@@ -55,7 +55,7 @@ const upload = multer({
 
 // Generiere Verification Code
 function generateVerificationCode() {
-  return crypto.randomInt(100000, 999999).toString();
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // Sende Verification Email
@@ -242,7 +242,11 @@ app.get("/users", isAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "users.html"));
 });
 
-app.get("/profiledata", isAuthenticated, (req, res) => {
+app.get("/foryou", isAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "foryou.html"));
+});
+
+app.get("/profiledata", (req, res) => {
   const userId = req.session.userId;
 
   db.get("SELECT * FROM users WHERE user_id = ?", [userId], (err, row) => {

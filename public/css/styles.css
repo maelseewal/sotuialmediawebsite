@@ -1,0 +1,95 @@
+:root {
+  --bg-main: rgb(30, 30, 30);
+  --bg-secondary: rgb(41, 41, 41);
+  --heading-color: #6d99c4;
+  --text-color: rgb(255, 255, 255);
+  --font-family: Helvetica;
+  --font-size-h1: 90px;
+  --font-size-h2: 30px;
+  --font-size-h3: 20px;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-main);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+header {
+  height: 120px;
+  width: 100vw;
+  background-color: var(--bg-main);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+h1 {
+  margin: 0;
+  color: var(--heading-color);
+  font-size: var(--font-size-h1);
+}
+img {
+  position: absolute;
+  height: 50px;
+  width: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  top: 30px;
+  right: 20px;
+}
+main {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  width: 100vw;
+  height: auto;
+  background-color: var(--bg-main);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+.about,
+.features,
+.community {
+  width: 95vw;
+  background-color: var(--bg-secondary);
+  border-radius: 10px;
+  padding: 20px;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+}
+.about h2,
+.features h2,
+.community h2 {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  color: var(--heading-color);
+  font-size: var(--font-size-h2);
+}
+.about h3,
+.features h3,
+.community h3 {
+  margin-top: 2px;
+  margin-bottom: 2px;
+  color: var(--text-color);
+  font-size: var(--font-size-h3);
+}
+button {
+  background-color: #5d81a5;
+  border-radius: 5px;
+  border: none;
+  height: 40px;
+  width: 150px;
+  color: var(--text-color);
+  margin-bottom: 20px;
+  transition: background-color 0.3s;
+}
+button:hover {
+  background-color: #4a6580;
+  cursor: pointer;
+}

@@ -11,7 +11,7 @@
 <body>
   <section id="main">
     <div class="profileinfo">
-      <img id="img" src="img/profile.png" alt="Profilbild">
+      <img crossorigin="anonymous" draggable="false" id="img" src="img/profile.png" alt="Profilbild">
       <div class="info">
         <div class="username">
           <h1>username</h1>
@@ -43,6 +43,11 @@
           </svg>
         </button>
         <h2>Edit Profil</h2>
+        <!-- Vorschaubild im Edit-Popup hinzugefügt -->
+        <div style="text-align: center; margin-bottom: 15px;">
+          <img id="previewImg" src="img/profile.png" alt="Vorschau"
+            style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
+        </div>
         <form action="/update-profile" method="post" enctype="multipart/form-data">
           <label style="cursor: pointer;" for="profilimg" class="custom-file-upload">Profilbild auswählen</label>
           <input id="profilimg" type="file" name="profileimg" accept="image/*"
@@ -77,8 +82,9 @@
         document.querySelector('h1').textContent = data.username;
 
         if (data.profileeImage) {
-          document.querySelector('img').src = '/../' + data.profileeImage; // kleines Bild
-          document.querySelector('.bigimg img').src = '/../' + data.profileeImage; // großes Bild im Pop-up
+          document.querySelector('#img').src = '/../' + data.profileeImage; // kleines Bild
+          document.querySelector('.bigimg img').src = '/../' + data.profileeImage; // grosses Bild im Pop-up
+          document.querySelector('#previewImg').src = '/../' + data.profileeImage; // Vorschaubild im Edit-Popup
         }
 
 
@@ -102,6 +108,25 @@
       const closePopupimg = document.getElementById("closePopupimg");
       const showimg = document.getElementById("showimg");
       const img = document.getElementById("img");
+      const previewImg = document.getElementById("previewImg");
+
+      // Neue Funktionalität für die Bildvorschau
+      const profilImgInput = document.getElementById("profilimg");
+
+      profilImgInput.addEventListener("change", function () {
+        if (this.files && this.files[0]) {
+          const reader = new FileReader();
+
+          reader.onload = function (e) {
+            // Aktualisiere NUR das Vorschaubild im Edit-Popup
+            previewImg.src = e.target.result;
+
+            // Die anderen Bilder werden erst beim Absenden des Formulars aktualisiert
+          };
+
+          reader.readAsDataURL(this.files[0]);
+        }
+      });
 
       img.addEventListener("click", () => {
         showimg.style.display = "flex";

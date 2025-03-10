@@ -1,66 +1,51 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Startseite</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background-color: rgb(33, 33, 33);
-    }
-
-    header {
-      position: fixed;
-      top: 0;
-      right: 0;
-      padding: 10px;
-      background-color: transparent;
-    }
-
-    header img {
-      width: 50px;
-      /* Größe des profilebildes */
-      height: 50px;
-      border-radius: 50%;
-      /* Rundes profilebild */
-      object-fit: cover;
-    }
-
-    .content {
-      padding-top: 60px;
-      /* Platz für das fixierte Header-Bild */
-      text-align: center;
-      height: calc(100% - 60px);
-      /* Volle Höhe, minus den Header */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    h1 {
-      font-size: 2em;
-      font-family: Arial, Helvetica, sans-serif;
-      color: white;
-    }
-  </style>
+  <title>Homepage</title>
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
-
   <header>
-    <a href="/profile"><img src="img/profile.png" alt="profilebild"></a>
-
+    <h1>Insyte</h1>
+    <a href="/profile"><img src="img/profile.png" alt="profile picture"></a>
   </header>
+  <main>
+    <section class="about">
+      <h2>About Insyte</h2>
+      <p>Insyte is the new social media platform from Europe that fosters creativity and places a strong emphasis on
+        privacy. We respect your data and highlight your content – a secure alternative to TikTok and Instagram.</p>
+    </section>
 
-  <div class="content">
-    <h1>Willkommen auf der Startseite!</h1>
-  </div>
+    <section class="features">
+      <h2>Our Features</h2>
+      <div class="feature-item">
+        <h3>Video Sharing</h3>
+        <p>Share creative videos and discover the latest trends, just like on TikTok, but with a European touch.</p>
+      </div>
+      <div class="feature-item">
+        <h3>Photos and Stories</h3>
+        <p>Post your best moments and share them with your friends, just like on Instagram.</p>
+      </div>
+      <div class="feature-item">
+        <h3>Personalized Feeds</h3>
+        <p>Enjoy a feed tailored to your interests, showing you relevant content curated from the best European
+          creators!</p>
+      </div>
+    </section>
 
+    <section class="community">
+      <h2>Join the Insyte Community</h2>
+      <p>With Insyte, you have the chance to create a new European online community focused on respectful exchanges
+        and creative content.</p>
+    </section>
+
+    <a href="/profile"><button>Join Now!</button></a>
+
+  </main>
 </body>
 <script>
   fetch('/profiledata')
@@ -69,8 +54,14 @@
       if (data.profileeImage) {
         document.querySelector('img').src = '/../' + data.profileeImage;
       }
+      if (data.username) {
+        document.querySelector('button').textContent = "Profile";
+      } else {
+        document.querySelector('button').textContent = "Join Now!";
+      }
     })
-    .catch(error => console.error('Fehler:', error));
+    .catch(error => console.error('Error:', error));
+
 </script>
 
 </html>

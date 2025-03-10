@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <Button id="upload-button">Upload</Button>
+  <section>
+
+  </section>
+  <section id="upload">
+    <form action="/upload-content" method="post" enctype="multipart/form-data">
+      <label style="cursor: pointer;" for="profilimg" class="custom-file-upload">Profilbild auswählen</label>
+      <input id="profilimg" type="file" name="profileimg" accept="image/*" style="cursor: pointer; display: none;" />
+      <button type="submit">Speichern</button>
+    </form>
+  </section>
+</body>
+
+</html>
