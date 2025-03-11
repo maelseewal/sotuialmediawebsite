@@ -21,45 +21,44 @@
 
   <script>
     let allUsers = []; // Array für alle Benutzer
+    let currentUserId; // ID des eingeloggten Benutzers
 
-    // Debugging function to check what data we're receiving
-    function debugData(data) {
-      console.log("Received data:", data);
-      if (Array.isArray(data)) {
-        console.log("Data is an array with", data.length, "items");
-        if (data.length > 0) {
-          console.log("First item example:", data[0]);
+    // Profildaten des aktuellen Benutzers abrufen
+    fetch('/profiledata')
+      .then(response => response.json())
+      .then(data => {
+        console.log("Profile data received:", data);
+        // Prüfen, ob ein Profilbild als Base64-String vorhanden ist
+        if (data.profileImageData) {
+          document.querySelector('.profileimg').src = data.profileImageData;
         }
-      } else {
-        console.log("Data is a single object:", data);
-      }
-    }
+        // Alternativ prüfen, ob ein Pfad vorhanden ist
+        else if (data.profileeImage) {
+          document.querySelector('.profileimg').src = data.profileeImage;
+        }
+      })
+      .catch(error => console.error('Fehler beim Laden des Profilbilds:', error));
 
+    // Alle Benutzer mit Follow-Status abrufen
     fetch("/allprofile")
       .then((response) => {
-        console.log("Response status:", response.status);
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         return response.json();
       })
       .then((data) => {
-        // Debug the received data
-        debugData(data);
+        console.log("All profiles data:", data);
 
         allUsers = data; // Alle Benutzer speichern
-
         const userListElement = document.getElementById("userlist");
-        userListElement.innerHTML = ""; // Clear any existing content
+        userListElement.innerHTML = ""; // Liste leeren
 
-        // Check if data is an array
         if (Array.isArray(data)) {
-          // If data is an array, iterate through each user
           data.forEach((user) => {
             displayUser(user, userListElement);
           });
         } else {
-          // If data is a single object, display just that user
           displayUser(data, userListElement);
         }
       })
@@ -77,51 +76,111 @@
       const listItem = document.createElement("li");
       listItem.className = "user-card";
 
-      // Check if profileImage exists and properly access it with the correct property name
-      const profileImagePath = user.profileeImage || null;
-
-      // Use default image path if profileImage is not available
+      // Standard-Bild als Fallback
       const defaultImagePath = "/img/profile.png";
 
-      // If profileImagePath starts with /uploads/, we don't need to add another slash
-      let imagePath;
-      if (profileImagePath && profileImagePath.startsWith("/")) {
-        imagePath = profileImagePath;
-      } else if (profileImagePath) {
-        imagePath = "/" + profileImagePath;
+      // Bild-Quelle bestimmen
+      let imageSource;
+
+      // Priorisierte Reihenfolge für Bildquellen
+      if (user.profileImageData) {
+        // Base64-kodiertes Bild verwenden, wenn vorhanden
+        imageSource = user.profileImageData;
+        console.log(`User ${user.username}: Using base64 image data`);
+      } else if (user.profileImagePath) {
+        // Pfad zum Bild verwenden, wenn vorhanden
+        imageSource = user.profileImagePath;
+        console.log(`User ${user.username}: Using image path: ${imageSource}`);
+      } else if (user.profileeImage) {
+        // Legacy-Unterstützung für alte API
+        imageSource = user.profileeImage;
+        console.log(`User ${user.username}: Using legacy image path: ${imageSource}`);
       } else {
-        imagePath = defaultImagePath;
+        // Standard-Bild verwenden, wenn kein Bild vorhanden ist
+        imageSource = defaultImagePath;
+        console.log(`User ${user.username}: No image found, using default`);
       }
 
-      console.log("User:", user.username || "Unknown user");
-      console.log("Image path being used:", imagePath);
+      // Follow-Button-Status
+      const buttonClass = user.isFollowing ? "follow-btn following" : "follow-btn not-following";
+      const buttonText = user.isFollowing ? "Followed" : "Follow";
 
       listItem.innerHTML = `
-          <div class = "imgandname">
-            <img class="profile-image" src="${imagePath}" alt="${user.name || " User"}'s profile"
-              onerror="this.src='${defaultImagePath}'; console.log('Image failed to load, using default:', this.src);">
+          <div class="imgandname">
+            <img class="profile-image" src="${imageSource}" alt="${user.name || 'User'}'s profile"
+              onerror="this.src='${defaultImagePath}'; console.log('Image failed to load for ${user.username}, using default');">
             <div class="user-info">
               <h3>${user.username || "Username not available"}</h3>
             </div>
           </div>
-          <button>Follow</button>
+          <button class="${buttonClass}" data-user-id="${user.user_id}" data-following="${user.isFollowing}">${buttonText}</button>
       `;
 
       listElement.appendChild(listItem);
+
+      // Event-Listener für den Follow-Button
+      const followButton = listItem.querySelector('button');
+      followButton.addEventListener('click', toggleFollowStatus);
     }
 
-    // Filterfunktion, die die Benutzer basierend auf der Suche filtert
-    function filterUsers() {
-      const searchTerm = document
-        .getElementById("searchInput")
-        .value.toLowerCase();
+    // Funktion zum Umschalten des Follow-Status
+    function toggleFollowStatus(event) {
+      const button = event.currentTarget;
+      const userId = button.getAttribute('data-user-id');
+      const isCurrentlyFollowing = button.getAttribute('data-following') === 'true';
 
-      // Benutzerliste filtern
+      const endpoint = isCurrentlyFollowing ? '/unfollow' : '/follow';
+
+      fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ followingId: userId })
+      })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.error || 'Fehler beim Ändern des Follow-Status');
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Button-Status umschalten
+          const newFollowingStatus = !isCurrentlyFollowing;
+          button.setAttribute('data-following', newFollowingStatus);
+
+          if (newFollowingStatus) {
+            button.textContent = 'Followed';
+            button.classList.remove('not-following');
+            button.classList.add('following');
+          } else {
+            button.textContent = 'Follow';
+            button.classList.remove('following');
+            button.classList.add('not-following');
+          }
+
+          // Auch im allUsers-Array aktualisieren
+          const userIndex = allUsers.findIndex(u => u.user_id == userId);
+          if (userIndex !== -1) {
+            allUsers[userIndex].isFollowing = newFollowingStatus;
+          }
+        })
+        .catch(error => {
+          console.error('Fehler:', error);
+          alert(error.message);
+        });
+    }
+
+    // Filterfunktion für die Suche
+    function filterUsers() {
+      const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+
       const filteredUsers = allUsers.filter((user) => {
         return user.username.toLowerCase().includes(searchTerm);
       });
 
-      // Liste aktualisieren
       const userListElement = document.getElementById("userlist");
       userListElement.innerHTML = ""; // Liste leeren
 
@@ -129,14 +188,6 @@
         displayUser(user, userListElement);
       });
     }
-    fetch('/profiledata')
-      .then(response => response.json())
-      .then(data => {
-        if (data.profileeImage) {
-          document.querySelector('img').src = '/../' + data.profileeImage;
-        }
-      })
-      .catch(error => console.error('Fehler:', error));
   </script>
 </body>
 

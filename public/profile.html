@@ -18,13 +18,13 @@
           <button class="editBtn">Edit profile</button>
         </div>
         <div class="follower">
-          <p>25 Photos</p>
-          <p>128 follower</p>
-          <p>254 followed</p>
+          <p>0 Photos</p>
+          <p id="follower">0 follower</p>
+          <p id="followed"> 0 followed</p>
         </div>
         <div class="personal">
-          <p id="name">Name</p>
-          <p id="bio">ahfljdfhdsa ljfafdljsah foiusafdhaoi fhaslkfdha jfdlkhdsa flkj</p>
+          <p id="name"></p>
+          <p id="bio"></p>
         </div>
       </div>
     </div>
@@ -81,20 +81,30 @@
         // Den Benutzernamen anzeigen
         document.querySelector('h1').textContent = data.username;
 
-        if (data.profileeImage) {
-          document.querySelector('#img').src = '/../' + data.profileeImage; // kleines Bild
-          document.querySelector('.bigimg img').src = '/../' + data.profileeImage; // grosses Bild im Pop-up
-          document.querySelector('#previewImg').src = '/../' + data.profileeImage; // Vorschaubild im Edit-Popup
+        // Check if we have base64 image data or a file path
+        if (data.profileImageData) {
+          // Use the base64 data directly as the src
+          document.querySelector('#img').src = data.profileImageData;
+          document.querySelector('.bigimg img').src = data.profileImageData;
+          document.querySelector('#previewImg').src = data.profileImageData;
+        } else if (data.profileeImage) {
+          // Use the file path as before
+          document.querySelector('#img').src = '/../' + data.profileeImage;
+          document.querySelector('.bigimg img').src = '/../' + data.profileeImage;
+          document.querySelector('#previewImg').src = '/../' + data.profileeImage;
         }
 
-
-        // Den bio-Wert im <p> Tag anzeigen
+        // Den Bio-Wert anzeigen
         document.getElementById('bio').textContent = data.bio;
         document.getElementById('name').textContent = data.name;
         document.querySelector('input[name="name"]').value = data.name;
-        document.getElementById('textbio').textContent = data.bio;
+
+        // Anzahl der Follower und Following setzen
+        document.getElementById('follower').textContent = data.followerCount + " followers";
+        document.getElementById('followed').textContent = data.followingCount + " following";
       })
       .catch(error => console.error('Fehler:', error));
+
 
     document.addEventListener("DOMContentLoaded", () => {
       const editBtn = document.querySelector(".editBtn");

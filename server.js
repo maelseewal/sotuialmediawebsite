@@ -252,19 +252,64 @@ app.get("/profiledata", (req, res) => {
   db.get("SELECT * FROM users WHERE user_id = ?", [userId], (err, row) => {
     if (err) {
       console.error("Fehler bei der Datenbankabfrage:", err.message);
-      return res.status(500).send("Fehler beim Laden des profiles.");
+      return res.status(500).send("Fehler beim Laden des Profiles.");
     }
 
     if (!row) {
       return res.status(404).send("Benutzer nicht gefunden.");
     }
 
-    res.json({
-      username: row.username,
-      bio: row.bio,
-      profileeImage: row.profilee_image,
-      name: row.name,
-    });
+    // Anzahl der Follower berechnen
+    db.all(
+      "SELECT COUNT(*) AS followerCount FROM followers WHERE following_id = ?",
+      [userId],
+      (err, result) => {
+        if (err) {
+          console.error("Fehler bei der Follower-Abfrage:", err.message);
+          return res.status(500).send("Fehler beim Laden der Follower-Daten.");
+        }
+
+        // Anzahl der Personen berechnen, denen dieser Benutzer folgt
+        db.all(
+          "SELECT COUNT(*) AS followingCount FROM followers WHERE follower_id = ?",
+          [userId],
+          (err, result2) => {
+            if (err) {
+              console.error("Fehler bei der Following-Abfrage:", err.message);
+              return res
+                .status(500)
+                .send("Fehler beim Laden der Following-Daten.");
+            }
+
+            // Prepare the response object
+            const userData = {
+              username: row.username,
+              bio: row.bio,
+              name: row.name,
+              followerCount: result[0].followerCount,
+              followingCount: result2[0].followingCount,
+            };
+
+            // If profile_image is a BLOB, convert it to a base64 string
+            if (row.profile_image) {
+              // Check if the profile_image is already a path or a BLOB
+              if (Buffer.isBuffer(row.profile_image)) {
+                // If it's a buffer (BLOB data), convert to base64
+                userData.profileImageData = `data:image/jpeg;base64,${row.profile_image.toString(
+                  "base64"
+                )}`;
+              } else {
+                // If it's still a file path, keep it as is
+                userData.profileeImage = row.profile_image;
+              }
+            }
+
+            // Send the response
+            res.json(userData);
+          }
+        );
+      }
+    );
   });
 });
 
@@ -326,43 +371,19 @@ app.post(
     const userId = req.session.userId;
     const { name, bio } = req.body;
 
-    db.get(
-      "SELECT profilee_image FROM users WHERE user_id = ?",
-      [userId],
-      (err, row) => {
+    // If there's a new image file
+    if (req.file) {
+      // Read the file as binary data
+      fs.readFile(req.file.path, (err, imageData) => {
         if (err) {
-          console.error(
-            "Fehler beim Abrufen der Benutzerinformationen:",
-            err.message
-          );
-          return res
-            .status(500)
-            .send("Fehler beim Aktualisieren des profiles.");
+          console.error("Fehler beim Lesen der Bilddatei:", err.message);
+          return res.status(500).send("Fehler beim Aktualisieren des Profils.");
         }
 
-        let profileeImagePath = row ? row.profilee_image : null;
-
-        if (req.file) {
-          if (
-            profileeImagePath &&
-            profileeImagePath !== "default-profilee.png"
-          ) {
-            const oldImagePath = path.join(
-              __dirname,
-              "public",
-              profileeImagePath
-            );
-            if (fs.existsSync(oldImagePath)) {
-              fs.unlinkSync(oldImagePath);
-            }
-          }
-
-          profileeImagePath = `/uploads/${req.file.filename}`;
-        }
-
+        // Update database with the binary image data
         db.run(
-          "UPDATE users SET name = ?, bio = ?, profilee_image = ? WHERE user_id = ?",
-          [name, bio, profileeImagePath, userId],
+          "UPDATE users SET name = ?, bio = ?, profile_image = ? WHERE user_id = ?",
+          [name, bio, imageData, userId],
           (updateErr) => {
             if (updateErr) {
               console.error(
@@ -371,14 +392,41 @@ app.post(
               );
               return res
                 .status(500)
-                .send("Fehler beim Aktualisieren des profiles.");
+                .send("Fehler beim Aktualisieren des Profils.");
             }
+
+            // Delete the temporary file
+            fs.unlink(req.file.path, (unlinkErr) => {
+              if (unlinkErr)
+                console.error(
+                  "Fehler beim Löschen der temporären Datei:",
+                  unlinkErr
+                );
+            });
 
             res.redirect("/profile");
           }
         );
-      }
-    );
+      });
+    } else {
+      // No new image, just update the other fields
+      db.run(
+        "UPDATE users SET name = ?, bio = ? WHERE user_id = ?",
+        [name, bio, userId],
+        (updateErr) => {
+          if (updateErr) {
+            console.error(
+              "Fehler beim Aktualisieren der Datenbank:",
+              updateErr.message
+            );
+            return res
+              .status(500)
+              .send("Fehler beim Aktualisieren des Profils.");
+          }
+          res.redirect("/profile");
+        }
+      );
+    }
   }
 );
 
@@ -392,6 +440,8 @@ app.get("/logout", (req, res) => {
 });
 
 app.get("/allprofile", isAuthenticated, (req, res) => {
+  const currentUserId = req.session.userId;
+
   db.all("SELECT * FROM users", (err, rows) => {
     if (err) {
       console.error("Fehler bei der Datenbankabfrage:", err.message);
@@ -402,15 +452,190 @@ app.get("/allprofile", isAuthenticated, (req, res) => {
       return res.status(404).send("Keine Benutzer gefunden.");
     }
 
-    res.json(
-      rows.map((row) => ({
-        username: row.username,
-        bio: row.bio,
-        profileeImage: row.profilee_image,
-        name: row.name,
-      }))
+    // Holen Sie die Follower-Informationen für den aktuellen Benutzer
+    db.all(
+      "SELECT following_id FROM followers WHERE follower_id = ?",
+      [currentUserId],
+      (followErr, followRows) => {
+        if (followErr) {
+          console.error(
+            "Fehler beim Laden der Follower-Daten:",
+            followErr.message
+          );
+          return res
+            .status(500)
+            .send("Fehler beim Laden der Follower-Informationen.");
+        }
+
+        // Erstellen Sie ein Set mit IDs, denen der Benutzer folgt (für schnellere Suche)
+        const followingIds = new Set(followRows.map((row) => row.following_id));
+
+        // Fügen Sie follow_status zu jedem Benutzer hinzu
+        const usersWithFollowStatus = rows.map((row) => {
+          const userData = {
+            user_id: row.user_id,
+            username: row.username,
+            bio: row.bio,
+            name: row.name,
+            isFollowing: followingIds.has(row.user_id),
+          };
+
+          // Konvertieren Sie das Profilbild in ein Base64-String, wenn es ein Buffer ist
+          if (row.profile_image) {
+            if (Buffer.isBuffer(row.profile_image)) {
+              userData.profileImageData = `data:image/jpeg;base64,${row.profile_image.toString(
+                "base64"
+              )}`;
+            } else {
+              userData.profileImagePath = row.profile_image;
+            }
+          }
+
+          return userData;
+        });
+
+        res.json(usersWithFollowStatus);
+      }
     );
   });
+});
+
+app.post("/follow", isAuthenticated, (req, res) => {
+  const followerId = req.session.userId; // Der Benutzer, der folgen möchte
+  const { followingId } = req.body; // Der Benutzer, dem gefolgt werden soll
+
+  // Prüfen, ob beide Benutzer-IDs gültig sind
+  if (!followerId || !followingId) {
+    return res.status(400).json({ error: "Ungültige Benutzer-ID" });
+  }
+
+  // Verhindern, dass Benutzer sich selbst folgen
+  if (followerId === parseInt(followingId)) {
+    return res
+      .status(400)
+      .json({ error: "Sie können sich nicht selbst folgen" });
+  }
+
+  // Prüfen, ob der Benutzer existiert, dem gefolgt werden soll
+  db.get("SELECT * FROM users WHERE user_id = ?", [followingId], (err, row) => {
+    if (err) {
+      console.error("Datenbankfehler:", err.message);
+      return res.status(500).json({ error: "Datenbankfehler" });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: "Benutzer nicht gefunden" });
+    }
+
+    // Überprüfen, ob bereits eine Folgebeziehung besteht
+    db.get(
+      "SELECT * FROM followers WHERE follower_id = ? AND following_id = ?",
+      [followerId, followingId],
+      (err, existingFollow) => {
+        if (err) {
+          console.error("Datenbankfehler:", err.message);
+          return res.status(500).json({ error: "Datenbankfehler" });
+        }
+
+        if (existingFollow) {
+          return res
+            .status(400)
+            .json({ error: "Sie folgen diesem Benutzer bereits" });
+        }
+
+        // Neue Folgebeziehung erstellen
+        db.run(
+          "INSERT INTO followers (follower_id, following_id) VALUES (?, ?)",
+          [followerId, followingId],
+          (err) => {
+            if (err) {
+              console.error(
+                "Fehler beim Erstellen der Folgebeziehung:",
+                err.message
+              );
+              return res
+                .status(500)
+                .json({ error: "Fehler beim Folgen des Benutzers" });
+            }
+
+            res.status(200).json({ message: "Erfolgreicher Follow" });
+          }
+        );
+      }
+    );
+  });
+});
+
+app.post("/unfollow", isAuthenticated, (req, res) => {
+  const followerId = req.session.userId;
+  const { followingId } = req.body;
+
+  if (!followerId || !followingId) {
+    return res.status(400).json({ error: "Ungültige Benutzer-ID" });
+  }
+
+  db.run(
+    "DELETE FROM followers WHERE follower_id = ? AND following_id = ?",
+    [followerId, followingId],
+    function (err) {
+      if (err) {
+        console.error("Fehler beim Entfolgen:", err.message);
+        return res
+          .status(500)
+          .json({ error: "Fehler beim Entfolgen des Benutzers" });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "Folgebeziehung nicht gefunden" });
+      }
+
+      res.status(200).json({ message: "Erfolgreich entfolgt" });
+    }
+  );
+});
+
+app.get("/followers", isAuthenticated, (req, res) => {
+  const userId = req.session.userId;
+
+  db.all(
+    `SELECT u.user_id, u.username, u.name, u.profile_image 
+     FROM users u
+     JOIN followers f ON u.user_id = f.follower_id
+     WHERE f.following_id = ?`,
+    [userId],
+    (err, rows) => {
+      if (err) {
+        console.error("Fehler beim Laden der Follower:", err.message);
+        return res
+          .status(500)
+          .json({ error: "Fehler beim Laden der Follower" });
+      }
+
+      res.json(rows);
+    }
+  );
+});
+
+app.get("/following", isAuthenticated, (req, res) => {
+  const userId = req.session.userId;
+
+  db.all(
+    `SELECT u.user_id, u.username, u.name, u.profile_image 
+     FROM users u
+     JOIN followers f ON u.user_id = f.following_id
+     WHERE f.follower_id = ?`,
+    [userId],
+    (err, rows) => {
+      if (err) {
+        console.error("Fehler beim Laden der Followings:", err.message);
+        return res
+          .status(500)
+          .json({ error: "Fehler beim Laden der Followings" });
+      }
+
+      res.json(rows);
+    }
+  );
 });
 
 app.listen(3000, () => {
